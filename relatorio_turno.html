@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Relatório de atividades – Geotecnia e Hidrogeologia Operacional</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
+  <!-- jsPDF versão estável para uso local -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body {
+      background-color: #f9fbfc;
+      color: #333;
+      font-family: "Segoe UI", sans-serif;
+    }
+    h1, h5 { color: #2c3e50; }
+    .container {
+      background-color: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 2rem;
+    }
+    .table th {
+      background-color: #e9f1f7;
+    }
+    .logotipo {
+      max-width: 200px;
+      margin-bottom: 1rem;
+    }
+    #preview-imagens img {
+      max-width: 150px;
+      max-height: 150px;
+      border: 1px solid #ccc;
+      padding: 4px;
+      margin: 4px;
+    }
+    @media print {
+      button { display: none; }
+    }
+  </style>
+</head>
+<body class="p-4">
+  <div class="container" id="conteudo-pdf">
+    <img src="logotipo.png" alt="Logotipo" class="logotipo" />
+    <h1 class="mb-4">Relatório de atividades – Geotecnia e Hidrogeologia Operacional</h1>
+
+    <div class="mb-3">
+      <label>Período do Relatório:</label>
+      <div class="row">
+        <div class="col-md-6">
+          <input type="date" class="form-control"/>
+        </div>
+        <div class="col-md-6">
+          <input type="date" class="form-control"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label>Responsável pelo Relatório:</label>
+      <input type="text" class="form-control"/>
+    </div>
+
+    <!-- Tabelas -->
+    <div class="mb-4">
+      <h5>Atividades realizadas conforme cronograma</h5>
+      <table class="table table-bordered" id="tabela-conforme">
+        <thead>
+          <tr><th>Nº</th><th>Atividade realizada</th><th>Local</th><th>Ações</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn btn-sm btn-primary" onclick="adicionarLinha('tabela-conforme')">Adicionar</button>
+    </div>
+
+    <div class="mb-4">
+      <h5>Atividades do cronograma não realizadas</h5>
+      <table class="table table-bordered" id="tabela-nao">
+        <thead>
+          <tr><th>Nº</th><th>Atividade realizada</th><th>Local</th><th>Ações</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn btn-sm btn-primary" onclick="adicionarLinha('tabela-nao')">Adicionar</button>
+    </div>
+
+    <div class="mb-4">
+      <h5>Atividades realizadas fora do cronograma</h5>
+      <table class="table table-bordered" id="tabela-fora">
+        <thead>
+          <tr><th>Nº</th><th>Atividade realizada</th><th>Local</th><th>Ações</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn btn-sm btn-primary" onclick="adicionarLinha('tabela-fora')">Adicionar</button>
+    </div>
+
+    <div class="mb-3">
+      <label>Sugestões ou Observações:</label>
+      <textarea class="form-control" rows="4"></textarea>
+    </div>
+
+    <div class="mb-4">
+      <h5>Imagens do Relatório</h5>
+      <input type="file" id="upload-imagens" class="form-control mb-2" multiple accept="image/*" onchange="exibirImagens()" />
+      <div id="preview-imagens" class="d-flex flex-wrap gap-2"></div>
+    </div>
+  </div>
+
+  <div class="container text-end">
+    <button class="btn btn-success" onclick="gerarPDF()">Gerar PDF</button>
+  </div>
+
+  <script>
+    function adicionarLinha(idTabela) {
+      const tabela = document.getElementById(idTabela).querySelector('tbody');
+      const novaLinha = tabela.insertRow();
+      const indice = tabela.rows.length;
+
+      const celNum = novaLinha.insertCell(0);
+      const celAtividade = novaLinha.insertCell(1);
+      const celLocal = novaLinha.insertCell(2);
+      const celAcoes = novaLinha.insertCell(3);
+
+      celNum.innerText = indice;
+      celAtividade.innerHTML = '<input type="text" class="form-control"/>';
+      celLocal.innerHTML = '<input type="text" class="form-control"/>';
+      celAcoes.innerHTML = '<button class="btn btn-sm btn-danger" onclick="removerLinha(this)">Remover</button>';
+    }
+
+    function removerLinha(botao) {
+      const linha = botao.closest('tr');
+      const tabela = linha.parentNode;
+      tabela.removeChild(linha);
+      Array.from(tabela.rows).forEach((row, index) => {
+        row.cells[0].innerText = index + 1;
+      });
+    }
+
+    function exibirImagens() {
+      const preview = document.getElementById('preview-imagens');
+      preview.innerHTML = '';
+      const arquivos = document.getElementById('upload-imagens').files;
+
+      for (const arquivo of arquivos) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(arquivo);
+      }
+    }
+
+    async function gerarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const elemento = document.getElementById('conteudo-pdf');
+      const canvas = await html2canvas(elemento);
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+      const arquivos = document.getElementById('upload-imagens').files;
+      for (const arquivo of arquivos) {
+        const imgBase64 = await toDataURL(arquivo);
+        doc.addPage();
+        doc.addImage(imgBase64, 'JPEG', 15, 15, 180, 160);
+      }
+
+      const total = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.text(`Página ${i} de ${total}`, doc.internal.pageSize.getWidth() / 2, 290, { align: 'center' });
+      }
+
+      doc.save('relatorio.pdf');
+    }
+
+    function toDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e);
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>
